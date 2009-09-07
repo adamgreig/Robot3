@@ -1,5 +1,5 @@
 /************************************************
- *	FollowingRobot - main.c
+ *	Robot3 - main.c
  *	The main code.
  *	See README for more details.
  ***********************************************/
@@ -7,11 +7,16 @@
 // The main STM32 library
 #include "stm32f10x_lib.h"
 
-//Function prototypes
-void Clock_Config();	// Starts the HSE, clocks the system and enables peripheral clocks
-void GPIO_Config();	// Configures all the input/output pins
+#include "drive.h"
 
-int main();		// Code entry point
+//Function prototypes
+void Clock_Config();
+void GPIO_Config();
+void NVIC_Config();
+void TIM_Config();
+void ADC_Config();
+
+int main();
 
 // Wait a set number of iterations, used as a very rough delay (busy wait loop)
 void Delay( unsigned long delay );
@@ -20,64 +25,26 @@ void Delay( unsigned long delay );
 // Stores configuration options that are then applied
 // to a specific peripheral.
 GPIO_InitTypeDef	GPIO_InitStructure;
-USART_InitTypeDef	USART_InitStructure;
-I2C_InitTypeDef		I2C_InitStructure;
-SPI_InitTypeDef		SPI_InitStructure;
-DMA_InitTypeDef		DMA_InitStructure;
 TIM_TimeBaseInitTypeDef	TIM_TimeBaseStructure;
-TIM_OCInitTypeDef	TIM_OCInitStructure;
-NVIC_InitTypeDef	NVIC_InitStructure;
-EXTI_InitTypeDef	EXTI_InitStructure_HD;
-EXTI_InitTypeDef	EXTI_InitStructure_VD;
+NVIC_InitTypeDef    NVIC_InitStructure;
+ADC_InitTypeDef     ADC_InitStructure;
 
 //Hold clock startup error status
 ErrorStatus HSEStartUpStatus;
 
 int main() {
 
-	// Configure clock
 	Clock_Config();
-
-	// Configure peripherals
 	GPIO_Config();
+    NVIC_Config();
+    TIM_Config();
+    ADC_Config();
     
-    #ifdef  VECT_TAB_RAM
-    /* Set the Vector Table base location at 0x20000000 */
-    NVIC_SetVectorTable(NVIC_VectTab_RAM, 0x0);
-    #else  /* VECT_TAB_FLASH  */
-    /* Set the Vector Table base location at 0x08000000 */
-    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);
-    #endif
-
+    steer_straight();
+    drive_forwards(2047);
+    
 	// Main loop
 	for(;;) {
-        
-        //Set everything off
-        GPIO_ResetBits(GPIOB, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);
-        
-        //Turn left
-        GPIO_SetBits(GPIOB, GPIO_Pin_12);
-        Delay(0xFFFFF);
-        GPIO_ResetBits(GPIOB, GPIO_Pin_12);
-        Delay(0xAFFFF);
-        
-        //Turn right
-        GPIO_SetBits(GPIOB, GPIO_Pin_13);
-        Delay(0xFFFFF);
-        GPIO_ResetBits(GPIOB, GPIO_Pin_13);
-        Delay(0xAFFFF);
-        
-        //Go forward
-        GPIO_SetBits(GPIOB, GPIO_Pin_15);
-        Delay(0xAFFFF);
-        GPIO_ResetBits(GPIOB, GPIO_Pin_15);
-        Delay(0xAFFFF);
-        
-        //Go backward
-        GPIO_SetBits(GPIOB, GPIO_Pin_14);
-        Delay(0xAFFFF);
-        GPIO_ResetBits(GPIOB, GPIO_Pin_14);
-        Delay(0xAFFFF);
         
 	}
 
@@ -90,14 +57,79 @@ void Delay( unsigned long delay ) {
 
 void GPIO_Config() {
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_12 | GPIO_Pin_13;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
+    
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_14 | GPIO_Pin_15;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
+    
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 }
 
-void EXTI15_10_IRQHandler() {
+void NVIC_Config() {
+    NVIC_InitStructure.NVIC_IRQChannel = ADC1_2_IRQChannel;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+    
+    #ifdef  VECT_TAB_RAM
+    /* Set the Vector Table base location at 0x20000000 */
+    NVIC_SetVectorTable(NVIC_VectTab_RAM, 0x0);
+    #else  /* VECT_TAB_FLASH  */
+    /* Set the Vector Table base location at 0x08000000 */
+    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);
+    #endif
+}
+
+void TIM_Config() {
+    /* Time Base configuration */
+    TIM_TimeBaseStructure.TIM_Prescaler = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseStructure.TIM_Period = 4095;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+    
+    TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
+    
+    /* TIM1 counter enable */
+    TIM_Cmd(TIM1, ENABLE);
+}
+
+void ADC_Config() {
+    ADC_InitStructure.ADC_Mode = ADC_Mode_Independent;
+    ADC_InitStructure.ADC_ScanConvMode = DISABLE;
+    ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
+    ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_None;
+    ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
+    ADC_InitStructure.ADC_NbrOfChannel = 1;
+    ADC_Init(ADC1, &ADC_InitStructure);
+    
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 1, ADC_SampleTime_71Cycles5);
+    
+    ADC_AnalogWatchdogThresholdsConfig(ADC1, 0x08CCC, 0x0000);
+    ADC_AnalogWatchdogSingleChannelConfig(ADC1, ADC_Channel_4);
+    ADC_AnalogWatchdogCmd(ADC1, ADC_AnalogWatchdog_SingleRegEnable);
+    
+    ADC_ITConfig(ADC1, ADC_IT_AWD, ENABLE);
+    
+    ADC_Cmd(ADC1, ENABLE);
+    
+    ADC_ResetCalibration(ADC1);
+    while(ADC_GetResetCalibrationStatus(ADC1));
+    
+    ADC_StartCalibration(ADC1);
+    while(ADC_GetCalibrationStatus(ADC1));
+    
+    ADC_SoftwareStartConvCmd(ADC1, ENABLE);
 }
 
 void Clock_Config() {
@@ -134,9 +166,7 @@ void Clock_Config() {
 		RCC_PLLCmd(ENABLE);
 
 		// Wait till PLL is ready
-		while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET)
-		{
-		}
+		while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET) {}
 
 		// Select PLL as system clock source
 		RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
@@ -147,7 +177,12 @@ void Clock_Config() {
 
 	// Initialise clock to peripherals
 	RCC_APB2PeriphClockCmd(
-		RCC_APB2Periph_GPIOB
+        RCC_APB2Periph_GPIOA |
+		RCC_APB2Periph_GPIOB |
+        RCC_APB2Periph_TIM1  |
+        RCC_APB2Periph_ADC1
 		, ENABLE );
+    
+    RCC_ADCCLKConfig(RCC_PCLK2_Div8); 
 
 }

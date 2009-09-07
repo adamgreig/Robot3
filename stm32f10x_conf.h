@@ -29,8 +29,8 @@
 
 /* Comment the line below to disable the specific peripheral inclusion */
 /************************************* ADC ************************************/
-// #define _ADC
-// #define _ADC1
+#define _ADC
+#define _ADC1
 // #define _ADC2
 // #define _ADC3
 
@@ -50,10 +50,10 @@
 // #define _DBGMCU
 
 /************************************* DMA ************************************/
-#define _DMA
+// #define _DMA
 // #define _DMA1_Channel1
 // #define _DMA1_Channel2
-#define _DMA1_Channel3
+// #define _DMA1_Channel3
 // #define _DMA1_Channel4
 // #define _DMA1_Channel5
 // #define _DMA1_Channel6
@@ -89,8 +89,8 @@
 #define _AFIO
 
 /************************************* I2C ************************************/
-#define _I2C
-#define _I2C1
+// #define _I2C
+// #define _I2C1
 // #define _I2C2
 
 /************************************* IWDG ***********************************/
@@ -112,8 +112,8 @@
 // #define _SDIO
 
 /************************************* SPI ************************************/
-#define _SPI
-#define _SPI1
+// #define _SPI
+// #define _SPI1
 // #define _SPI2
 // #define _SPI3
 

@@ -34,8 +34,8 @@ all: $(MAIN_OUT_ELF) $(MAIN_OUT_BIN)
 
 # main
 
-$(MAIN_OUT_ELF): main.o stm32f10x_it.o lib/libstm32.a
-	$(LD) $(LDFLAGS) main.o stm32f10x_it.o lib/libstm32.a --output $@
+$(MAIN_OUT_ELF): main.o drive.o stm32f10x_it.o lib/libstm32.a
+	$(LD) $(LDFLAGS) main.o drive.o stm32f10x_it.o lib/libstm32.a --output $@
 
 $(MAIN_OUT_BIN): $(MAIN_OUT_ELF)
 	$(OBJCP) $(OBJCPFLAGS) $< $@
@@ -54,17 +54,14 @@ flash: $(MAIN_OUT)
 LIBSTM32_OUT = lib/libstm32.a
 
 LIBSTM32_OBJS = \
- lib/src/stm32f10x_dma.o \
+ lib/src/stm32f10x_adc.o \
  lib/src/stm32f10x_exti.o \
  lib/src/stm32f10x_flash.o \
  lib/src/stm32f10x_gpio.o \
- lib/src/stm32f10x_i2c.o \
  lib/src/stm32f10x_lib.o \
  lib/src/stm32f10x_nvic.o \
  lib/src/stm32f10x_rcc.o \
- lib/src/stm32f10x_spi.o \
  lib/src/stm32f10x_tim.o \
- lib/src/stm32f10x_usart.o \
  lib/src/cortexm3_macro.o \
  lib/src/stm32f10x_vector.o
 

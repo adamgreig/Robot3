@@ -347,6 +347,14 @@ void DMA1_Channel7_IRQHandler(void)
 *******************************************************************************/
 void ADC1_2_IRQHandler(void)
 {
+    GPIO_SetBits(GPIOB, GPIO_Pin_0);
+    steer_left();
+    drive_backwards(2047);
+    Delay(0xFFFFF);
+    steer_straight();
+    drive_forwards(2047);
+    ADC_ClearITPendingBit(ADC1, ADC_IT_AWD);
+    GPIO_ResetBits(GPIOB, GPIO_Pin_0);
 }
 
 /*******************************************************************************
@@ -591,9 +599,9 @@ void USART3_IRQHandler(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-//void EXTI15_10_IRQHandler(void)
-//{
-//}
+void EXTI15_10_IRQHandler(void)
+{
+}
 
 /*******************************************************************************
 * Function Name  : RTCAlarm_IRQHandler
