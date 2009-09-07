@@ -51,17 +51,34 @@ int main() {
 
 	// Main loop
 	for(;;) {
-        /* Turn on led connected to PC.4 pin */
-        GPIO_SetBits(GPIOB, GPIO_Pin_0);
-        GPIO_ResetBits(GPIOB, GPIO_Pin_1);
-        /* Insert delay */
+        
+        //Set everything off
+        GPIO_ResetBits(GPIOB, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15);
+        
+        //Turn left
+        GPIO_SetBits(GPIOB, GPIO_Pin_12);
+        Delay(0xFFFFF);
+        GPIO_ResetBits(GPIOB, GPIO_Pin_12);
         Delay(0xAFFFF);
         
-        /* Turn off led connected to PC.4 pin */
-        GPIO_SetBits(GPIOB, GPIO_Pin_1);
-        GPIO_ResetBits(GPIOB, GPIO_Pin_0);
-        /* Insert delay */
+        //Turn right
+        GPIO_SetBits(GPIOB, GPIO_Pin_13);
+        Delay(0xFFFFF);
+        GPIO_ResetBits(GPIOB, GPIO_Pin_13);
         Delay(0xAFFFF);
+        
+        //Go forward
+        GPIO_SetBits(GPIOB, GPIO_Pin_15);
+        Delay(0xAFFFF);
+        GPIO_ResetBits(GPIOB, GPIO_Pin_15);
+        Delay(0xAFFFF);
+        
+        //Go backward
+        GPIO_SetBits(GPIOB, GPIO_Pin_14);
+        Delay(0xAFFFF);
+        GPIO_ResetBits(GPIOB, GPIO_Pin_14);
+        Delay(0xAFFFF);
+        
 	}
 
 }
@@ -73,7 +90,7 @@ void Delay( unsigned long delay ) {
 
 void GPIO_Config() {
 
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_Init(GPIOB, &GPIO_InitStructure);
