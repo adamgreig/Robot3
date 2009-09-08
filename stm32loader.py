@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # -*- coding: utf-8 -*-
 # vim: sw=4:ts=4:si:et:enc=utf-8
@@ -73,7 +74,7 @@ class CommandInterface:
                     raise CmdException("NACK "+info)
                 else:
                     # Unknow responce
-                    raise CmdException("Unknow response. "+info+": "+hex(ask))
+                    raise CmdException("Unknown response. "+info+": "+hex(ask))
 
 
     def reset(self):
