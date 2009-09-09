@@ -15,19 +15,22 @@ void GPIO_Config();
 void NVIC_Config();
 void TIM_Config();
 void ADC_Config();
+void USART_Config();
 
 int main();
 
-// Wait a set number of iterations, used as a very rough delay (busy wait loop)
 void Delay( unsigned long delay );
+void USART_Send(char* str);
 
 // Variables for initialising peripherals
 // Stores configuration options that are then applied
 // to a specific peripheral.
-GPIO_InitTypeDef	GPIO_InitStructure;
+GPIO_InitTypeDef	    GPIO_InitStructure;
 TIM_TimeBaseInitTypeDef	TIM_TimeBaseStructure;
-NVIC_InitTypeDef    NVIC_InitStructure;
-ADC_InitTypeDef     ADC_InitStructure;
+TIM_OCInitTypeDef       TIM_OCInitStructure;
+NVIC_InitTypeDef        NVIC_InitStructure;
+ADC_InitTypeDef         ADC_InitStructure;
+USART_InitTypeDef       USART_InitStructure;
 
 //Hold clock startup error status
 ErrorStatus HSEStartUpStatus;
@@ -39,20 +42,36 @@ int main() {
     NVIC_Config();
     TIM_Config();
     ADC_Config();
+    USART_Config();
     
-    steer_straight();
-    drive_forwards(2047);
+    Delay(0xFFFFF);
+    
+    USART_Send("\r\n\r\n\r\n");
+    USART_Send(" Robot3 initialised.\r\n");
+    USART_Send("======CONTROLS========\r\n");
+    USART_Send("| W  DRIVE FORWARDS  |\r\n");
+    USART_Send("| S  DRIVE BACKWARDS |\r\n");
+    USART_Send("|        ---         |\r\n");
+    USART_Send("| A  STEER LEFT      |\r\n");
+    USART_Send("| D  STEER RIGHT     |\r\n");
+    USART_Send("======================\r\n");
     
 	// Main loop
-	for(;;) {
-        
-	}
-
+	for(;;);
+    
 }
 
 
 void Delay( unsigned long delay ) {
 	for(; delay; --delay );
+}
+
+void USART_Send(char* str) {
+    unsigned int i;
+    for(i=0; str[i] != 0x00; i++) {
+        USART_SendData(USART1, str[i]);
+        while(USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+    }
 }
 
 void GPIO_Config() {
@@ -71,6 +90,15 @@ void GPIO_Config() {
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AIN;
     GPIO_Init(GPIOA, &GPIO_InitStructure);
+    
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 }
 
@@ -79,6 +107,18 @@ void NVIC_Config() {
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+    
+    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQChannel;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    
+    NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQChannel;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+    
     NVIC_Init(&NVIC_InitStructure);
     
     #ifdef  VECT_TAB_RAM
@@ -91,7 +131,8 @@ void NVIC_Config() {
 }
 
 void TIM_Config() {
-    /* Time Base configuration */
+    
+    // TIM1: Generate PWM signals to the motor controller
     TIM_TimeBaseStructure.TIM_Prescaler = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_TimeBaseStructure.TIM_Period = 4095;
@@ -100,8 +141,23 @@ void TIM_Config() {
     
     TIM_TimeBaseInit(TIM1, &TIM_TimeBaseStructure);
     
-    /* TIM1 counter enable */
     TIM_Cmd(TIM1, ENABLE);
+    
+    // TIM2: Generate timed interrupt events, clocked at 1kHz
+    TIM_TimeBaseStructure.TIM_Period = 1024;
+    TIM_TimeBaseStructure.TIM_Prescaler = 35999;
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    
+    TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
+    
+    TIM_ITConfig(TIM2, TIM_IT_CC1, ENABLE);
+    TIM_SelectOnePulseMode(TIM2, TIM_OPMode_Single);
+    
+    TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_Timing;
+    TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+    TIM_OCInitStructure.TIM_Pulse = 192;
+    TIM_OC1Init(TIM2, &TIM_OCInitStructure);
 }
 
 void ADC_Config() {
@@ -115,7 +171,7 @@ void ADC_Config() {
     
     ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 1, ADC_SampleTime_71Cycles5);
     
-    ADC_AnalogWatchdogThresholdsConfig(ADC1, 0x08CCC, 0x0000);
+    ADC_AnalogWatchdogThresholdsConfig(ADC1, 0x8CCC, 0x0000);
     ADC_AnalogWatchdogSingleChannelConfig(ADC1, ADC_Channel_4);
     ADC_AnalogWatchdogCmd(ADC1, ADC_AnalogWatchdog_SingleRegEnable);
     
@@ -130,6 +186,19 @@ void ADC_Config() {
     while(ADC_GetCalibrationStatus(ADC1));
     
     ADC_SoftwareStartConvCmd(ADC1, ENABLE);
+}
+
+void USART_Config() {
+    USART_InitStructure.USART_BaudRate = 115200;
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+    USART_InitStructure.USART_StopBits = USART_StopBits_1;
+    USART_InitStructure.USART_Parity = USART_Parity_No ;
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+    USART_Init( USART1, &USART_InitStructure );
+    
+    USART_Cmd(USART1, ENABLE);
+    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 }
 
 void Clock_Config() {
@@ -174,15 +243,21 @@ void Clock_Config() {
 		// Wait till PLL is used as system clock source
 		while(RCC_GetSYSCLKSource() != 0x08) {}
 	}
-
+    
+    RCC_ADCCLKConfig(RCC_PCLK2_Div8);
+    
 	// Initialise clock to peripherals
+    
+    RCC_APB1PeriphClockCmd(
+        RCC_APB1Periph_TIM2
+        , ENABLE);
+    
 	RCC_APB2PeriphClockCmd(
         RCC_APB2Periph_GPIOA |
 		RCC_APB2Periph_GPIOB |
         RCC_APB2Periph_TIM1  |
-        RCC_APB2Periph_ADC1
-		, ENABLE );
-    
-    RCC_ADCCLKConfig(RCC_PCLK2_Div8); 
+        RCC_APB2Periph_ADC1  |
+        RCC_APB2Periph_USART1
+		, ENABLE);
 
 }

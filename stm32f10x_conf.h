@@ -123,7 +123,7 @@
 /************************************* TIM ************************************/
 #define _TIM
 #define _TIM1
-// #define _TIM2
+#define _TIM2
 // #define _TIM3
 // #define _TIM4
 // #define _TIM5

@@ -352,9 +352,9 @@ void ADC1_2_IRQHandler(void)
     drive_backwards(2047);
     Delay(0xFFFFF);
     steer_straight();
-    drive_forwards(2047);
-    ADC_ClearITPendingBit(ADC1, ADC_IT_AWD);
+    stop();
     GPIO_ResetBits(GPIOB, GPIO_Pin_0);
+    ADC_ClearITPendingBit(ADC1, ADC_IT_AWD);
 }
 
 /*******************************************************************************
@@ -467,8 +467,13 @@ void TIM1_CC_IRQHandler(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void TIM2_IRQHandler(void)
-{
+void TIM2_IRQHandler(void) {
+    GPIO_SetBits(GPIOB, GPIO_Pin_1);
+    steer_straight();
+    stop();
+    Delay(0xFFFF);
+    GPIO_ResetBits(GPIOB, GPIO_Pin_1);
+    TIM_ClearITPendingBit(TIM2, TIM_IT_CC1);
 }
 
 /*******************************************************************************
@@ -566,8 +571,38 @@ void SPI2_IRQHandler(void)
 * Output         : None
 * Return         : None
 *******************************************************************************/
-void USART1_IRQHandler(void)
-{
+void USART1_IRQHandler(void) {
+    
+    if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
+        //TIM_Cmd(TIM2, DISABLE);
+        
+        char data = USART_ReceiveData(USART1);
+        switch(data) {
+            case 'w':
+                drive_forwards(2047);
+                break;
+                
+            case 's':
+                drive_backwards(2047);
+                break;
+                
+            case 'a':
+                steer_left();
+                break;
+                
+            case 'd':
+                steer_right();
+                break;
+        }
+        
+        TIM_SetCompare1(TIM2, 256);
+        TIM_SetCounter(TIM2, 0);
+        TIM_Cmd(TIM2, ENABLE);
+        
+    }
+    
+    USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+    
 }
 
 /*******************************************************************************

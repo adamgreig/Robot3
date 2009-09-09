@@ -60,6 +60,7 @@ LIBSTM32_OBJS = \
  lib/src/stm32f10x_gpio.o \
  lib/src/stm32f10x_lib.o \
  lib/src/stm32f10x_nvic.o \
+ lib/src/stm32f10x_usart.o \
  lib/src/stm32f10x_rcc.o \
  lib/src/stm32f10x_tim.o \
  lib/src/cortexm3_macro.o \
