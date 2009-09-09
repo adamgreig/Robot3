@@ -113,12 +113,11 @@ void NVIC_Config() {
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
     
     NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQChannel;
     NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-    
     NVIC_Init(&NVIC_InitStructure);
     
     #ifdef  VECT_TAB_RAM

@@ -574,7 +574,7 @@ void SPI2_IRQHandler(void)
 void USART1_IRQHandler(void) {
     
     if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
-        //TIM_Cmd(TIM2, DISABLE);
+        TIM_Cmd(TIM2, DISABLE);
         
         char data = USART_ReceiveData(USART1);
         switch(data) {
